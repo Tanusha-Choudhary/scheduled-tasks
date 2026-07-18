@@ -1,38 +1,41 @@
-# To run and test the code you need to update 4 places:
-# 1. Change MY_EMAIL/MY_PASSWORD to your own details.
-# 2. Go to your email provider and make it allow less secure apps.
-# 3. Update the SMTP ADDRESS to match your email provider.
-# 4. Update birthdays.csv to contain today's month and day.
-# See the solution video in the 100 Days of Python Course for explainations.
-
-
-from datetime import datetime
-import pandas
-import random
-import smtplib
+from multiprocessing.connection import Client
+account_sid = os.environ.get("account_sid")#FROM TWILIO WEBSITE
+auth_token = environ.get("auth_token") #FROM TWILIO WENSITE
+API_KEY = environ.get("API_KEY")  #FROM API WENSITE
+# https://api.openweathermap.org/data/2.5/weather?lat=18.520430&lon=73.856743&appid=6abc354a24000b4c1524033a604ca328
+import requests
+from twilio.rest import Client
 import os
+weather =\
+    {"lat":"18.520430",
+    "lon":"73.856743",
+    "appid":API_KEY,
+    "cnt":4,}
+response = requests.get("https://api.openweathermap.org/data/2.5/forecast",params=weather)
+response.raise_for_status()
+will_rain = False
+data = response.json()
+for hour_dara in data["list"]:
+    condition_code = hour_dara["weather"][0]["id"]
+    if int(condition_code) < 700:
+        will_rain = True
+if will_rain:
+    # Find your Account SID and Auth Token at twilio.com/console
+    # and set the environment variables. See http://twil.io/secure
+    # account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    # auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+    # print(account_sid, auth_token)
+    client = Client(account_sid, auth_token)
+    # message = client.messages.create(
+    #     body="It's raining outside  in PUNE☔️",
+    #     from_="+********",
+    #     to="+91********",
+    # )
+    message = client.messages.create(
+        from_='+16187403743',
+        body="It's raining outside 🌧️",
+        to='+16187403743'
+    )
+    # print(message.sid)
 
-# import os and use it to get the Github repository secrets
-MY_EMAIL = os.environ.get("MY_EMAIL")
-MY_PASSWORD = os.environ.get("MY_PASSWORD")
 
-today = datetime.now()
-today_tuple = (today.month, today.day)
-
-data = pandas.read_csv("birthdays.csv")
-birthdays_dict = {(data_row["month"], data_row["day"])                  : data_row for (index, data_row) in data.iterrows()}
-if today_tuple in birthdays_dict:
-    birthday_person = birthdays_dict[today_tuple]
-    file_path = f"letter_templates/letter_{random.randint(1, 3)}.txt"
-    with open(file_path) as letter_file:
-        contents = letter_file.read()
-        contents = contents.replace("[NAME]", birthday_person["name"])
-
-    with smtplib.SMTP("YOUR EMAIL PROVIDER SMTP SERVER ADDRESS") as connection:
-        connection.starttls()
-        connection.login(MY_EMAIL, MY_PASSWORD)
-        connection.sendmail(
-            from_addr=MY_EMAIL,
-            to_addrs=birthday_person["email"],
-            msg=f"Subject:Happy Birthday!\n\n{contents}"
-        )
